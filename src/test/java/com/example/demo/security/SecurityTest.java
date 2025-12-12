@@ -98,4 +98,18 @@ class SecurityTest {
 
         System.out.println("✅ Empty fields validation: Sistema rechaza campos vacíos correctamente");
     }
+
+    @Test
+    void givenNullNombre_whenCreatingCliente_thenReturnsBadRequest() throws Exception {
+        System.out.println("🛡 Test: Null Fields Validation");
+
+        var nullClient = new ClienteRequestDTO();
+
+        mockMvc.perform(MockMvcRequestBuilders.post(API_CLIENTES_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(nullClient)))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        System.out.println("✅ Null validation: Sistema rechaza campos null correctamente");
+    }
 }
