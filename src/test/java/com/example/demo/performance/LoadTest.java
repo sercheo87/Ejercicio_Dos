@@ -138,5 +138,67 @@ class LoadTest {
 
         System.out.println("✅ PRUEBA DE CARGA EXITOSA");
     }
-}
 
+    @Test
+    @DisplayName("100 rapid requests should complete in less than 10 seconds with less than 10% errors")
+    void givenHundredRapidRequests_whenStressTesting_thenCompletesWithAcceptableMetrics() {
+        var numberOfRequests = 100;
+
+        var executor = Executors.newFixedThreadPool(20);
+        List<Future<Long>> futures = new ArrayList<>();
+
+        System.out.println("⚡ PRUEBA DE ESTRÉS: " + numberOfRequests + " peticiones...");
+
+        var startTime = System.currentTimeMillis();
+
+        for (int i = 0; i < numberOfRequests; i++) {
+            Future<Long> future = executor.submit(() -> {
+                var reqStart = System.currentTimeMillis();
+
+                given()
+                    .when()
+                    .get("/api/v1/clientes")
+                    .then()
+                    .statusCode(200);
+
+                var reqEnd = System.currentTimeMillis();
+                return reqEnd - reqStart;
+            });
+
+            futures.add(future);
+        }
+
+        List<Long> responseTimes = new ArrayList<>();
+        var errors = 0;
+
+        for (Future<Long> future : futures) {
+            try {
+                responseTimes.add(future.get());
+            } catch (Exception e) {
+                errors++;
+            }
+        }
+
+        executor.shutdown();
+        var endTime = System.currentTimeMillis();
+        var totalTime = endTime - startTime;
+
+        var minTime = responseTimes.stream().min(Long::compare).orElse(0L);
+        var maxTime = responseTimes.stream().max(Long::compare).orElse(0L);
+        var avgTime = responseTimes.stream().mapToLong(Long::longValue).sum() / responseTimes.size();
+
+        System.out.println("\n📊 ESTADÍSTICAS DE ESTRÉS:");
+        System.out.println("  ⏱ Tiempo mínimo: " + minTime + "ms");
+        System.out.println("  ⏱ Tiempo máximo: " + maxTime + "ms");
+        System.out.println("  ⏱ Tiempo promedio: " + avgTime + "ms");
+        System.out.println("  ⏱ Tiempo total: " + totalTime + "ms");
+        System.out.println("  ❌ Errores: " + errors);
+        System.out.println("  📊 Throughput: " + (numberOfRequests * 1000 / totalTime) + " req/s");
+
+        assertThat("Debe completarse en < 10 segundos", totalTime, lessThan(10000L));
+        assertThat("Máximo 10% de errores", errors, lessThan(numberOfRequests / 10));
+        assertThat("Tiempo promedio bajo estrés < 500ms", avgTime, lessThan(500L));
+
+        System.out.println("✅ Sistema resistió el estrés");
+    }
+}
