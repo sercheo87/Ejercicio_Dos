@@ -112,4 +112,20 @@ class SecurityTest {
 
         System.out.println("✅ Null validation: Sistema rechaza campos null correctamente");
     }
+
+    @Test
+    void givenExceedingLengthNombre_whenCreatingCliente_thenReturnsBadRequest() throws Exception {
+        System.out.println("🛡 Test: Field Length Validation");
+
+        var longNameClient = new ClienteRequestDTO();
+        longNameClient.setNombre("A".repeat(1000));
+        longNameClient.setEmail("test@test.com");
+
+        mockMvc.perform(MockMvcRequestBuilders.post(API_CLIENTES_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(longNameClient)))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        System.out.println("✅ Field length validation: Longitud excesiva rechazada correctamente");
+    }
 }
