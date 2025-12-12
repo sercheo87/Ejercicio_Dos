@@ -82,4 +82,20 @@ class SecurityTest {
 
         System.out.println("✅ Email validation: Sistema valida formato correctamente");
     }
+
+    @Test
+    void givenEmptyNombre_whenCreatingCliente_thenReturnsBadRequest() throws Exception {
+        System.out.println("🛡 Test: Empty Fields Validation");
+
+        var emptyClient = new ClienteRequestDTO();
+        emptyClient.setNombre("");
+        emptyClient.setEmail("valid@test.com");
+
+        mockMvc.perform(MockMvcRequestBuilders.post(API_CLIENTES_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(emptyClient)))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        System.out.println("✅ Empty fields validation: Sistema rechaza campos vacíos correctamente");
+    }
 }
