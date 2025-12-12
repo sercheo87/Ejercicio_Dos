@@ -63,23 +63,32 @@ class PerformanceTest {
         System.out.println("✅ Performance OK: " + duration + "ms < " + SLA_RESPONSE_TIME_MS + "ms");
     }
 
+    /**
+     * TEST 2: Verificar que GET /api/v1/clientes/{id} responde en menos de 100ms
+     * <p>
+     * Concepto: Operaciones por clave primaria son más rápidas
+     * Métrica: Tiempo de respuesta < 100ms (más estricto que Test 1)
+     */
     @Test
-    @DisplayName("givenGetClienteById_whenCalled_thenRespondsWithinSLA")
     void givenGetClienteById_whenCalled_thenRespondsWithinSLA() throws Exception {
-        var startTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
 
         mockMvc.perform(get("/api/v1/clientes/1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        var endTime = System.currentTimeMillis();
-        var responseTime = endTime - startTime;
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
 
-        System.out.println("GET /api/v1/clientes/1 - Tiempo de respuesta: " + responseTime + "ms");
-        System.out.println("SLA esperado: < " + SLA_RESPONSE_TIME_MS + "ms");
+        System.out.println("⏱ GET /api/v1/clientes/1 - Tiempo: " + duration + "ms");
 
-        Assertions.assertTrue(responseTime < SLA_RESPONSE_TIME_MS,
-                "El endpoint GET /api/v1/clientes/1 excedió el SLA. Tiempo: " + responseTime + "ms, SLA: " + SLA_RESPONSE_TIME_MS + "ms");
+        if (duration > 100) {
+            throw new AssertionError(
+                    "❌ Endpoint tardó " + duration + "ms. SLA: < 100ms (operación simple)"
+            );
+        }
+
+        System.out.println("✅ Performance OK: " + duration + "ms < 100ms");
     }
 
     @Test
