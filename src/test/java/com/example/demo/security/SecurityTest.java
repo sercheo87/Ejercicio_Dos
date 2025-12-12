@@ -128,4 +128,20 @@ class SecurityTest {
 
         System.out.println("✅ Field length validation: Longitud excesiva rechazada correctamente");
     }
+
+    @Test
+    void givenSpecialCharactersInNombre_whenCreatingCliente_thenReturnsBadRequest() throws Exception {
+        System.out.println("🛡 Test: Special Characters Validation");
+
+        var specialCharsClient = new ClienteRequestDTO();
+        specialCharsClient.setNombre("Test<script>alert('XSS')</script>");
+        specialCharsClient.setEmail("test@test.com");
+
+        mockMvc.perform(MockMvcRequestBuilders.post(API_CLIENTES_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(specialCharsClient)))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        System.out.println("✅ Special chars validation: Caracteres peligrosos rechazados correctamente");
+    }
 }
