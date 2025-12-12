@@ -66,4 +66,20 @@ class SecurityTest {
 
         System.out.println("✅ XSS Prevention: BLOQUEADO por validación @Pattern");
     }
+
+    @Test
+    void givenInvalidEmailFormat_whenCreatingCliente_thenReturnsBadRequest() throws Exception {
+        System.out.println("🛡 Test: Email Validation");
+
+        var invalidEmailClient = new ClienteRequestDTO();
+        invalidEmailClient.setNombre("Test User");
+        invalidEmailClient.setEmail("invalid-email-format");
+
+        mockMvc.perform(MockMvcRequestBuilders.post(API_CLIENTES_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidEmailClient)))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        System.out.println("✅ Email validation: Sistema valida formato correctamente");
+    }
 }
