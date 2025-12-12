@@ -50,4 +50,20 @@ class SecurityTest {
 
         System.out.println("✅ SQL Injection prevención: BLOQUEADO por validación @Pattern");
     }
+
+    @Test
+    void givenXssPayload_whenCreatingCliente_thenReturnsBadRequest() throws Exception {
+        System.out.println("🛡 Test: XSS Protection");
+
+        var xssClient = new ClienteRequestDTO();
+        xssClient.setNombre("<script>alert('XSS')</script>");
+        xssClient.setEmail("xss@test.com");
+
+        mockMvc.perform(MockMvcRequestBuilders.post(API_CLIENTES_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(xssClient)))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        System.out.println("✅ XSS Prevention: BLOQUEADO por validación @Pattern");
+    }
 }
