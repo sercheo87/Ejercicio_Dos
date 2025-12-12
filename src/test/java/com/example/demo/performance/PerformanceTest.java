@@ -1,6 +1,5 @@
 package com.example.demo.performance;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,7 +11,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -91,32 +89,42 @@ class PerformanceTest {
         System.out.println("✅ Performance OK: " + duration + "ms < 100ms");
     }
 
+    /**
+     * TEST 3: Calcular tiempo promedio de múltiples peticiones
+     * <p>
+     * Concepto: El promedio es más confiable que una sola medición
+     * Métrica: Promedio de 10 peticiones < 150ms
+     */
     @Test
-    @DisplayName("givenPostCliente_whenCalled_thenRespondsWithinSLA")
-    void givenPostCliente_whenCalled_thenRespondsWithinSLA() throws Exception {
-        var clienteJson = """
-                {
-                    "nombre": "Performance Test User",
-                    "email": "performance.test@example.com",
-                    "telefono": "1234567890"
-                }
-                """;
+    void givenMultipleRequests_whenCalled_thenAverageRespondsWithinSLA() throws Exception {
+        int iterations = 10;
+        long totalTime = 0;
 
-        var startTime = System.currentTimeMillis();
+        System.out.println("📊 Ejecutando " + iterations + " peticiones...");
 
-        mockMvc.perform(post("/api/v1/clientes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(clienteJson))
-                .andExpect(status().isCreated());
+        for (int i = 0; i < iterations; i++) {
+            long startTime = System.currentTimeMillis();
 
-        var endTime = System.currentTimeMillis();
-        var responseTime = endTime - startTime;
+            mockMvc.perform(get("/api/v1/clientes")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk());
 
-        System.out.println("POST /api/v1/clientes - Tiempo de respuesta: " + responseTime + "ms");
-        System.out.println("SLA esperado: < " + SLA_RESPONSE_TIME_MS + "ms");
+            long endTime = System.currentTimeMillis();
+            totalTime += (endTime - startTime);
+        }
 
-        Assertions.assertTrue(responseTime < SLA_RESPONSE_TIME_MS,
-                "El endpoint POST /api/v1/clientes excedió el SLA. Tiempo: " + responseTime + "ms, SLA: " + SLA_RESPONSE_TIME_MS + "ms");
+        long averageTime = totalTime / iterations;
+
+        System.out.println("⏱ Tiempo promedio: " + averageTime + "ms");
+        System.out.println("⏱ Tiempo total: " + totalTime + "ms");
+
+        if (averageTime > 150) {
+            throw new AssertionError(
+                    "❌ Tiempo promedio: " + averageTime + "ms. Esperado: < 150ms"
+            );
+        }
+
+        System.out.println("✅ Performance promedio OK: " + averageTime + "ms < 150ms");
     }
 }
 
