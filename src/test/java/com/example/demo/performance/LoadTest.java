@@ -201,4 +201,74 @@ class LoadTest {
 
         System.out.println("✅ Sistema resistió el estrés");
     }
+
+    @Test
+    @DisplayName("Performance degradation under increasing load should be less than 200%")
+    void givenIncreasingLoad_whenMeasuringDegradation_thenDegradationIsAcceptable() throws InterruptedException {
+        System.out.println("📈 PRUEBA DE DEGRADACIÓN...");
+
+        int[] loadLevels = {1, 5, 10, 25, 50};
+        var iterationsPerLevel = 5;
+        List<Long> avgResponseTimes = new ArrayList<>();
+
+        for (int users : loadLevels) {
+            List<Long> levelTimes = new ArrayList<>();
+
+            for (int iteration = 0; iteration < iterationsPerLevel; iteration++) {
+                var latch = new CountDownLatch(users);
+                var executor = Executors.newFixedThreadPool(users);
+                List<Long> times = new ArrayList<>();
+
+                for (int i = 0; i < users; i++) {
+                    executor.submit(() -> {
+                        try {
+                            var start = System.currentTimeMillis();
+                            given()
+                                .when()
+                                .get("/api/v1/clientes")
+                                .then()
+                                .statusCode(200);
+
+                            var end = System.currentTimeMillis();
+                            synchronized (times) {
+                                times.add(end - start);
+                            }
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
+                }
+
+                latch.await(30, TimeUnit.SECONDS);
+                executor.shutdown();
+
+                if (!times.isEmpty()) {
+                    var iterationAvg = times.stream().mapToLong(Long::longValue).sum() / times.size();
+                    levelTimes.add(iterationAvg);
+                }
+            }
+
+            levelTimes.sort(Long::compareTo);
+            var trimmedTimes = levelTimes.subList(1, levelTimes.size() - 1);
+            var avgTime = trimmedTimes.stream().mapToLong(Long::longValue).sum() / trimmedTimes.size();
+            avgResponseTimes.add(avgTime);
+
+            System.out.println("  👥 " + users + " usuarios → ⏱ " + avgTime + "ms promedio");
+        }
+
+        var baselineTime = Math.max(avgResponseTimes.get(0), 5L);
+        var highLoadTime = avgResponseTimes.get(avgResponseTimes.size() - 1);
+
+        var degradation = ((highLoadTime - baselineTime) * 100.0) / baselineTime;
+
+        System.out.println("\n📊 ANÁLISIS:");
+        System.out.println("  📏 Baseline (1 usuario): " + baselineTime + "ms");
+        System.out.println("  🔥 Alta carga (50 usuarios): " + highLoadTime + "ms");
+        System.out.println("  📈 Degradación: " + String.format("%.2f", degradation) + "%");
+
+        assertThat("Degradación debe ser < 200%", degradation, lessThan(200.0));
+
+        System.out.println("✅ Degradación aceptable");
+    }
+
 }
